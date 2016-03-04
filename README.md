@@ -1,6 +1,8 @@
 # pm3Bruter
 EM4x Brute Force mod for Proxmark3
 
+This mod brute forces (LF) RFID tags using the EM4x features in the Proxmark3. It waits for a valid tag and uses it to brute force UID's 'around' it. For example, reading tag '0105881506' will result in brute forcing '0105881507', '0105881508' etc.
+
 See https://github.com/Proxmark/proxmark3/blob/master/COMPILING.txt for Proxmark3 compiling instructions.
 
 To use image compare features, install fswebcam and imagemagick
