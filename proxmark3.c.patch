@@ -1,0 +1,84 @@
+@@ -25,6 +25,7 @@
+ #include "sleep.h"
+ #include "cmdparser.h"
+ #include "cmdhw.h"
++#include "bruter.h"
+ 
+ // a global mutex to prevent interlaced printing from different threads
+ pthread_mutex_t print_lock;
+@@ -208,8 +209,17 @@
+ 		return 1;
+ 	}
+ 	if (strcmp(argv[1], "-h") == 0) {
+-		printf("syntax: %s <port>\n\n",argv[0]);
++		printf("syntax: %s <port> [options]\n\n",argv[0]);
+ 		printf("\tLinux example:'%s /dev/ttyACM0'\n\n", argv[0]);
++
++		printf("\t### Proxmark Bruter ###\n");
++		printf("\t-b\t\tEnable brute force function\n");
++		printf("\t-m [mode]\t1 = brute force up and down (default), 2 = brute force down, 3 = brute force up\n");
++		printf("\t-c [number]\tNumber of attempts (default 100)\n");
++		printf("\t-w\t\tUse webcam to identify valid tags (requires fswebcam and imagemagick)\n");
++		printf("\t-p [path]\tPath to store images (default '/tmp/')\n");
++		printf("\t-t [UID]\tSpecify custom tag\n\n");
++		printf("\texample:'%s /dev/ttyACM0 -b -m 3 -c 50 -w -p /root/pictures/ -t 0102030405'\n\n", argv[0]);
+ 		dumpAllHelp(0);
+ 		return 0;
+ 	}
+@@ -254,14 +264,53 @@
+ 		marg.script_cmds_file = argv[2];
+ 	}
+ 
++	
++	
+ 	// create a mutex to avoid interlacing print commands from our different threads
+ 	pthread_mutex_init(&print_lock, NULL);
+-
+ 	pthread_create(&main_loop_threat, NULL, &main_loop, &marg);
+-	InitGraphics(argc, argv);
+ 
+-	MainGraphics();
++	if (argc > 2 && strcmp(argv[2], "-b") == 0) {
++		printf("##Bruter - Running EM4x Bruter.\n");
++		int bruteSize = 100;
++		char filePath[128];
++		char customTag[20];
++		sprintf(filePath, "%s","/tmp/");
++		sprintf(customTag, "%s","N");
++		bool useCam = false;
++		int mode = 1;
++		for(int i=0; i<argc; ++i)
++    		{
++			if(argc > i && strcmp(argv[i], "-w") == 0)
++				useCam = true;
++			if(argc > (i+1) && strcmp(argv[i], "-c") == 0)
++				bruteSize = atoi(argv[i+1]);
++			if(argc > (i+1) && strcmp(argv[i], "-p") == 0)
++				sprintf(filePath, "%s",argv[i+1]);
++			if(argc > (i+1) && strcmp(argv[i], "-t") == 0)
++				sprintf(customTag, "%s",argv[i+1]);
++			if(argc > (i+1) && strcmp(argv[i], "-t") == 0)
++				sprintf(customTag, "%s",argv[i+1]);
++			if(argc > (i+1) && strcmp(argv[i], "-m") == 0)
++			{
++				if(strcmp(argv[i+1], "2") == 0) {
++					printf("##Bruter - Mode 2 selected, brute force down.\n");
++					mode = 2;
++				}else if(strcmp(argv[i+1], "3") == 0) {
++					printf("##Bruter - Mode 3 selected, brute force up.\n");
++					mode = 3;
++				}else
++					printf("##Bruter - (Default) Mode 1 selected, brute force up and down.\n");
++			}
++    		}
++		printf("##Bruter - Brute forcing %d Tags.\n", bruteSize);
++		if(useCam)		
++			printf("##Bruter - Storing images in '%s'\n", filePath);
++		runBruterEM410X(&mode, &bruteSize, filePath, useCam, customTag);
++	}
+ 
++	InitGraphics(argc, argv);
++	MainGraphics();
+ 	pthread_join(main_loop_threat, NULL);
+ 
+ 	// Clean up the port
